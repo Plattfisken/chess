@@ -2,11 +2,6 @@
 #include "root.h"
 #include <string.h>
 
-typedef struct {
-    PLAYER_COLOR color;
-    TreeNode *moveTree;
-} ChessBot;
-
 float getPieceSquareValue(PIECE_TYPE piece, int sqaureIdx) {
     float piece_table[12][BOARD_SIZE] = {
         // white pawn
@@ -282,16 +277,16 @@ TreeNode *createMoveTree(ChessGameState gameState, TreeNode *tree, int depth) {
     return tree;
 }
 
-Move calculateMoveToPlay(ChessBot *bot, ChessGameState gameState) {
+Move calculateMoveToPlay(ChessGameState *gameState) {
 
     // things get very slow at a depth value higher than three, optimizations will be necessary
     const int moveDepth = 3;
-    bot->moveTree = createMoveTree(gameState, bot->moveTree, moveDepth);
+    gameState->tree = createMoveTree(*gameState, gameState->tree, moveDepth);
 
-    TreeNode bestChild = bot->moveTree[bot->moveTree[0].firstChildIdx];
-    for(int i = 0; i < bot->moveTree[0].childCount; ++i) {
-        TreeNode child = bot->moveTree[bot->moveTree[0].firstChildIdx + i];
-        if(bot->color == PLAYER_WHITE) {
+    TreeNode bestChild = gameState->tree[gameState->tree[0].firstChildIdx];
+    for(int i = 0; i < gameState->tree[0].childCount; ++i) {
+        TreeNode child = gameState->tree[gameState->tree[0].firstChildIdx + i];
+        if(gameState->board.colorToPlay == PLAYER_WHITE) {
             if(child.value > bestChild.value)
                 bestChild = child;
         }

@@ -5,44 +5,39 @@
 #include "chess.h"
 
 
-ChessGameState setupStartingPosition() {
-    ChessGameState newGame;
+void setupStartingPosition(ChessGameState *state) {
     for(int i = 0; i < ROW_SIZE; ++i) {
-        newGame.board.position[IDX_2D(i,1)] = BLACK_PAWN;
-        newGame.board.position[IDX_2D(i,6)] = WHITE_PAWN;
+        state->board.position[IDX_2D(i,1)] = BLACK_PAWN;
+        state->board.position[IDX_2D(i,6)] = WHITE_PAWN;
 
         for(int u = 2; u < 6; ++u) {
-            newGame.board.position[IDX_2D(i,u)] = EMPTY;
+            state->board.position[IDX_2D(i,u)] = EMPTY;
         }
     }
-    newGame.board.position[IDX_2D(0,0)] = BLACK_ROOK;
-    newGame.board.position[IDX_2D(7,0)] = BLACK_ROOK;
+    state->board.position[IDX_2D(0,0)] = BLACK_ROOK;
+    state->board.position[IDX_2D(7,0)] = BLACK_ROOK;
 
-    newGame.board.position[IDX_2D(1,0)] = BLACK_KNIGHT;
-    newGame.board.position[IDX_2D(6,0)] = BLACK_KNIGHT;
+    state->board.position[IDX_2D(1,0)] = BLACK_KNIGHT;
+    state->board.position[IDX_2D(6,0)] = BLACK_KNIGHT;
 
-    newGame.board.position[IDX_2D(2,0)] = BLACK_BISHOP;
-    newGame.board.position[IDX_2D(5,0)] = BLACK_BISHOP;
+    state->board.position[IDX_2D(2,0)] = BLACK_BISHOP;
+    state->board.position[IDX_2D(5,0)] = BLACK_BISHOP;
 
-    newGame.board.position[IDX_2D(3,0)] = BLACK_QUEEN;
-    newGame.board.position[IDX_2D(4,0)] = BLACK_KING;
+    state->board.position[IDX_2D(3,0)] = BLACK_QUEEN;
+    state->board.position[IDX_2D(4,0)] = BLACK_KING;
 
-    newGame.board.position[IDX_2D(0,7)] = WHITE_ROOK;
-    newGame.board.position[IDX_2D(7,7)] = WHITE_ROOK;
+    state->board.position[IDX_2D(0,7)] = WHITE_ROOK;
+    state->board.position[IDX_2D(7,7)] = WHITE_ROOK;
 
-    newGame.board.position[IDX_2D(1,7)] = WHITE_KNIGHT;
-    newGame.board.position[IDX_2D(6,7)] = WHITE_KNIGHT;
+    state->board.position[IDX_2D(1,7)] = WHITE_KNIGHT;
+    state->board.position[IDX_2D(6,7)] = WHITE_KNIGHT;
 
-    newGame.board.position[IDX_2D(2,7)] = WHITE_BISHOP;
-    newGame.board.position[IDX_2D(5,7)] = WHITE_BISHOP;
+    state->board.position[IDX_2D(2,7)] = WHITE_BISHOP;
+    state->board.position[IDX_2D(5,7)] = WHITE_BISHOP;
 
-    newGame.board.position[IDX_2D(3,7)] = WHITE_QUEEN;
-    newGame.board.position[IDX_2D(4,7)] = WHITE_KING;
+    state->board.position[IDX_2D(3,7)] = WHITE_QUEEN;
+    state->board.position[IDX_2D(4,7)] = WHITE_KING;
 
-    newGame.board.colorToPlay = PLAYER_WHITE;
-    newGame.legalMoves = NULL;
-    newGame.positionHistory = NULL;
-    return newGame;
 }
 
 PLAYER_COLOR getPieceColor(PIECE_TYPE piece) {
@@ -399,7 +394,7 @@ char *convertMoveToChessNotation(Board board, Move move, char *buf) {
     }
 
     // rank
-    buf[pos++] = '0' + (8 - RANK(move.destIndex));
+    buf[pos++] = '0' + (COL_SIZE - RANK(move.destIndex));
 
     buf[pos] = '\0';
     return buf;
@@ -417,6 +412,7 @@ GAME_STATE getStateForPosition(ChessGameState state) {
         return CONTINUE;
 }
 
+
 ChessGameState playMove(ChessGameState state, Move move, int shouldCheckKingInCheck) {
     // function to do all necessary steps in right order (first makeMove, then switch color, then calculateLegalMoves)
     // to make sure it is always done in the right order, chessbots should use this function to simulate moves??
@@ -426,13 +422,22 @@ ChessGameState playMove(ChessGameState state, Move move, int shouldCheckKingInCh
     return state;
 }
 
-GAME_STATE progressGame(ChessGameState *state, Move attemptedMove) {
-    if(!state->positionHistory) {
-        *state = setupStartingPosition();
-        state->legalMoves = calculateLegalMoves(*state, 1);
-        arrpush(state->positionHistory, state->board);
-    }
+ChessGameState initGame(PLAYER_TYPE white, PLAYER_TYPE black) {
+    ChessGameState newGame;
+    setupStartingPosition(&newGame);
+    newGame.board.colorToPlay = PLAYER_WHITE;
+    newGame.whiteType = white;
+    newGame.blackType = black;
+    newGame.legalMoves = NULL;
+    newGame.positionHistory = NULL;
+    newGame.tree = NULL;
+    newGame.legalMoves = calculateLegalMoves(newGame, 1);
+    arrpush(newGame.positionHistory, newGame.board);
+    return newGame;
+}
 
+GAME_STATE progressGame(ChessGameState *state, Move attemptedMove) {
+    assert(state->positionHistory && "Chess game not initialized");
     Move moveToPlay = {0};
     int foundMove = FALSE;
     for(int i = 0; i < arrlen(state->legalMoves); ++i) {
@@ -463,4 +468,35 @@ GAME_STATE progressGame(ChessGameState *state, Move attemptedMove) {
     // TODO: 50 move rule...
 
     return INVALID_MOVE_ATTEMPTED;
+}
+
+TreeNode *newTreeNode(TreeNode *tree, int parentIdx, Move move, float val) {
+    // create a new tree node with an associated move, the value of the position after this move will be calculated later
+    TreeNode newNode;
+    newNode.move = move;
+    newNode.value = val;
+    newNode.childCount = 0;
+    newNode.firstChildIdx = -1;
+    // set the root node's parentIdx to -1 if there are no nodes in the tree
+    if(arrlen(tree) == 0)
+        newNode.parentIdx = -1;
+    else {
+        newNode.parentIdx = parentIdx;
+        TreeNode *parent = &tree[parentIdx];
+
+        // TODO: insertion
+        // checck the assertion logic, some stuff isnt working here
+        {
+            size_t treeLen = arrlen(tree);
+            TreeNode lastNode = tree[treeLen - 1];
+            assert(lastNode.parentIdx <= parentIdx && "insertion attempted");
+        }
+
+        if(parent->childCount == 0) {
+            parent->firstChildIdx = arrlen(tree);
+        }
+        ++parent->childCount;
+    }
+    arrpush(tree, newNode);
+    return tree;
 }

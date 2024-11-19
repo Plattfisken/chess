@@ -41,7 +41,7 @@ typedef enum {
     DRAW,
     BLACK_WIN,
     WHITE_WIN,
-} GAME_STATE;
+} GAME_STATE; // I want a better name for this, alternatively the ChessGameState struct...
 
 typedef enum {
     REGULAR,
@@ -53,6 +53,11 @@ typedef enum {
     PROMOTION_TO_ROOK,
     PROMOTION_TO_QUEEN
 } MOVE_TYPE;
+
+typedef enum {
+    BOT,
+    HUMAN
+} PLAYER_TYPE;
 
 typedef struct {
     size_t startIndex;
@@ -66,14 +71,26 @@ typedef struct {
 } Board;
 
 typedef struct {
+    int parentIdx;
+    int firstChildIdx;
+    int childCount;
+    Move move;
+    float value;
+} TreeNode;
+TreeNode *newTreeNode(TreeNode *tree, int parentIdx, Move move, float val);
+
+typedef struct {
     Board board;
     Move *legalMoves;
     Board *positionHistory;
+    PLAYER_TYPE whiteType;
+    PLAYER_TYPE blackType;
+    TreeNode *tree;
 } ChessGameState;
 
-ChessGameState setupStartingPosition();
-Move *calculateLegalMoves(ChessGameState gameState, int shouldCheckKingInCheck);
+ChessGameState initGame(PLAYER_TYPE white, PLAYER_TYPE black);
 ChessGameState playMove(ChessGameState state, Move move, int shouldCheckKingInCheck);
 GAME_STATE progressGame(ChessGameState *game, Move attemptedMove);
+Move *calculateLegalMoves(ChessGameState gameState, int shouldCheckKingInCheck);
 
 #endif

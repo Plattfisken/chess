@@ -1,6 +1,5 @@
 // provides utility functions and macros for navigating the chessboard.
 #pragma once
-#include "root.h"
 
 #define ROW_SIZE 8
 #define COL_SIZE 8

@@ -2,9 +2,6 @@
 #include <stdio.h>
 #include "../include/raylib.h"
 
-// idk why this is included and i don't think it's necessary, remove probablt
-#include <unistd.h>
-
 #define SQUARE_SIZE 64
 #define TREE_VIEW_WIDTH ((SQUARE_SIZE) * (4))
 
@@ -39,32 +36,7 @@ int main(void) {
         }
     }
 
-    // TODO: do this in a better way, the gamestate object should hold the players and their types??
-    typedef enum {
-        BOT,
-        HUMAN
-    } PLAYER_TYPE;
-
-    typedef struct {
-        PLAYER_TYPE type;
-        ChessBot *bot;
-    } Player;
-
-    ChessBot blackBot = {0};
-    blackBot.color = PLAYER_BLACK;
-    blackBot.moveTree = NULL;
-    ChessBot whiteBot = {0};
-    whiteBot.color = PLAYER_WHITE;
-    whiteBot.moveTree = NULL;
-    Player blackPlayer = { BOT, &blackBot };
-    // Player whitePlayer = { BOT, &whiteBot };
-    // Player blackPlayer = { HUMAN, NULL };
-    Player whitePlayer = { HUMAN, NULL };
-    Player *playerToPlay = &whitePlayer;
-
-    ChessGameState gameState = {0};
-    // sets up the game, should maybe be a seperate function for clarity.
-    progressGame(&gameState, NO_MOVE);
+    ChessGameState gameState = initGame(HUMAN, BOT);
     GAME_STATE endState = CONTINUE;
 
     int selectedPieceIndex = -1;
@@ -80,7 +52,7 @@ int main(void) {
             arrfree(gameState.legalMoves);
             arrfree(gameState.positionHistory);
             gameState.positionHistory = NULL;
-            progressGame(&gameState, NO_MOVE);
+            ChessGameState gameState = initGame(HUMAN, HUMAN);
             endState = CONTINUE;
             boardToDraw = arrlen(gameState.positionHistory) - 1;
             showWinner = FALSE;
@@ -94,7 +66,8 @@ int main(void) {
                 boardToDraw++;
         }
 
-        if(playerToPlay->type == HUMAN && (endState == CONTINUE || endState == INVALID_MOVE_ATTEMPTED) &&
+        PLAYER_TYPE playerToPlay = gameState.board.colorToPlay == PLAYER_WHITE ? gameState.whiteType : gameState.blackType;
+        if(playerToPlay == HUMAN && (endState == CONTINUE || endState == INVALID_MOVE_ATTEMPTED) &&
            boardToDraw == arrlen(gameState.positionHistory) - 1 && promotionSquareIdx == -1) {
             if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if(mouseSquareIdx != -1 && gameState.board.position[mouseSquareIdx] != EMPTY) selectedPieceIndex = mouseSquareIdx;
@@ -114,7 +87,6 @@ int main(void) {
                 if(promotionSquareIdx == -1) {
                     endState = progressGame(&gameState, attemptedMove);
                     boardToDraw = arrlen(gameState.positionHistory) - 1;
-                    playerToPlay = playerToPlay == &whitePlayer ? &blackPlayer : &whitePlayer;
                 }
                 selectedPieceIndex = -1;
             }
@@ -146,16 +118,14 @@ int main(void) {
                     boardToDraw = arrlen(gameState.positionHistory) - 1;
                     promotionSquareIdx = -1;
                 }
-                playerToPlay = playerToPlay == &whitePlayer ? &blackPlayer : &whitePlayer;
             }
         }
 
         // update
-        if(playerToPlay->type == BOT && endState == CONTINUE) {
-            attemptedMove = calculateMoveToPlay(playerToPlay->bot, gameState);
+        if(playerToPlay == BOT && endState == CONTINUE) {
+            attemptedMove = calculateMoveToPlay(&gameState);
             endState = progressGame(&gameState, attemptedMove);
             boardToDraw = arrlen(gameState.positionHistory) - 1;
-            playerToPlay = playerToPlay == &whitePlayer ? &blackPlayer : &whitePlayer;
         }
 
         if(endState != CONTINUE && endState != INVALID_MOVE_ATTEMPTED) {
@@ -206,13 +176,12 @@ int main(void) {
         if(promotionSquareIdx != -1) {
             DrawRectangle(FILE(promotionSquareIdx) * SQUARE_SIZE,
                           gameState.board.colorToPlay == PLAYER_WHITE ? RANK(promotionSquareIdx) * SQUARE_SIZE : RANK(NORTH(promotionSquareIdx, 3)) * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE * 4, GRAY);
-            DrawTexture(pieceTextures[KNIGHT(gameState.board.colorToPlay)], FILE(promotionSquareIdx) * SQUARE_SIZE, RANK(promotionSquareIdx) * SQUARE_SIZE, WHITE);
-            DrawTexture(pieceTextures[BISHOP(gameState.board.colorToPlay)], FILE(promotionSquareIdx) * SQUARE_SIZE, 
-                        gameState.board.colorToPlay == PLAYER_WHITE ? RANK(SOUTH(promotionSquareIdx, 1)) * SQUARE_SIZE : RANK(NORTH(promotionSquareIdx, 1)) * SQUARE_SIZE, WHITE);
-            DrawTexture(pieceTextures[ROOK(gameState.board.colorToPlay)], FILE(promotionSquareIdx) * SQUARE_SIZE, 
-                        gameState.board.colorToPlay == PLAYER_WHITE ? RANK(SOUTH(promotionSquareIdx, 2)) * SQUARE_SIZE : RANK(NORTH(promotionSquareIdx, 2)) * SQUARE_SIZE, WHITE);
-            DrawTexture(pieceTextures[QUEEN(gameState.board.colorToPlay)], FILE(promotionSquareIdx) * SQUARE_SIZE, 
-                        gameState.board.colorToPlay == PLAYER_WHITE ? RANK(SOUTH(promotionSquareIdx, 3)) * SQUARE_SIZE : RANK(NORTH(promotionSquareIdx, 3)) * SQUARE_SIZE, WHITE);
+            for(int i = KNIGHT(gameState.board.colorToPlay); i <= QUEEN(gameState.board.colorToPlay); ++i) {
+                DrawTexture(pieceTextures[i], FILE(promotionSquareIdx) * SQUARE_SIZE,
+                            gameState.board.colorToPlay == PLAYER_WHITE ?
+                            RANK(SOUTH(promotionSquareIdx, i - KNIGHT(gameState.board.colorToPlay))) * SQUARE_SIZE :
+                            RANK(NORTH(promotionSquareIdx, i - KNIGHT(gameState.board.colorToPlay))) * SQUARE_SIZE, WHITE);
+            }
         }
 
         if(endState == INVALID_MOVE_ATTEMPTED) {
@@ -220,13 +189,13 @@ int main(void) {
         }
 
         // drawing tree view
-        if(blackBot.moveTree) {
-            for(int i = 0; i < blackBot.moveTree[0].childCount; ++i) {
+        if(gameState.tree) {
+            for(int i = 0; i < gameState.tree[0].childCount; ++i) {
                 char moveBuf[8];
-                DrawText(convertMoveToChessNotation(gameState.positionHistory[arrlen(gameState.positionHistory) - 2], blackBot.moveTree[blackBot.moveTree[0].firstChildIdx + i].move, moveBuf), SQUARE_SIZE * ROW_SIZE + 12, 24 * i, 12, BLACK);
+                DrawText(convertMoveToChessNotation(gameState.positionHistory[arrlen(gameState.positionHistory) - 2], gameState.tree[gameState.tree[0].firstChildIdx + i].move, moveBuf), SQUARE_SIZE * ROW_SIZE + 12, 24 * i, 12, BLACK);
 
                 char valBuf[8];
-                sprintf(valBuf, "%4.2f\n", blackBot.moveTree[blackBot.moveTree[0].firstChildIdx + i].value);
+                sprintf(valBuf, "%4.2f\n", gameState.tree[gameState.tree[0].firstChildIdx + i].value);
                 DrawText(valBuf, SQUARE_SIZE * ROW_SIZE + 60, 24 * i, 12, BLACK);
             }
         }
