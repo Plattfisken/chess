@@ -1,6 +1,5 @@
 #pragma once
 #include "root.h"
-#include <string.h>
 
 float getPieceSquareValue(PIECE_TYPE piece, int sqaureIdx) {
     float piece_table[12][BOARD_SIZE] = {
@@ -216,7 +215,7 @@ TreeNode *createMoveTree(ChessGameState gameState, TreeNode *tree, int depth) {
         tree = NULL;
     }
 
-    tree = newTreeNode(tree, 0, NO_MOVE, 0);
+    tree = newTreeNode(tree, 0, (Move){0, 0, NO_MOVE}, 0);
 
     Move moves[depth];
     // initialize to zero
@@ -265,7 +264,7 @@ TreeNode *createMoveTree(ChessGameState gameState, TreeNode *tree, int depth) {
         for(int i = 0; i < arrlen(gameStateCopy.legalMoves); ++i) {
             ChessGameState gameStateCopyCopy = gameStateCopy;
             gameStateCopyCopy.legalMoves = NULL;
-            gameStateCopyCopy = playMove(gameStateCopyCopy, gameStateCopy.legalMoves[i], TRUE);
+            playMove(&gameStateCopyCopy, gameStateCopy.legalMoves[i], TRUE);
             tree = newTreeNode(tree, nodeIdx, gameStateCopy.legalMoves[i], getPositionEvaluation(gameStateCopyCopy, getStateForPosition(gameStateCopyCopy)));
             arrfree(gameStateCopyCopy.legalMoves);
         }
@@ -277,7 +276,7 @@ TreeNode *createMoveTree(ChessGameState gameState, TreeNode *tree, int depth) {
     return tree;
 }
 
-Move calculateMoveToPlay(ChessGameState *gameState) {
+Move _calculateMoveToPlay(ChessGameState *gameState) {
 
     // things get very slow at a depth value higher than three, optimizations will be necessary
     const int moveDepth = 3;

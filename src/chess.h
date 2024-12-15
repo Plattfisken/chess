@@ -1,6 +1,5 @@
 #ifndef CHESS_H
 #define CHESS_H
-
 #include "root.h"
 
 #define PAWN(color) ((color) == (PLAYER_WHITE) ? (WHITE_PAWN) : (BLACK_PAWN))
@@ -9,31 +8,6 @@
 #define ROOK(color) ((color) == (PLAYER_WHITE) ? (WHITE_ROOK) : (BLACK_ROOK))
 #define QUEEN(color) ((color) == (PLAYER_WHITE) ? (WHITE_QUEEN) : (BLACK_QUEEN))
 #define KING(color) ((color) == (PLAYER_WHITE) ? (WHITE_KING) : (BLACK_KING))
-
-#define NO_MOVE ((Move){0})
-
-typedef enum {
-    EMPTY = -1,
-
-    WHITE_PAWN = 0,
-    WHITE_KNIGHT = 1,
-    WHITE_BISHOP = 2,
-    WHITE_ROOK = 3,
-    WHITE_QUEEN = 4,
-    WHITE_KING = 5,
-
-    BLACK_PAWN = 6,
-    BLACK_KNIGHT = 7,
-    BLACK_BISHOP = 8,
-    BLACK_ROOK = 9,
-    BLACK_QUEEN = 10,
-    BLACK_KING = 11,
-} PIECE_TYPE;
-
-typedef enum {
-    PLAYER_BLACK = 0,
-    PLAYER_WHITE = 1
-} PLAYER_COLOR;
 
 typedef enum {
     INVALID_MOVE_ATTEMPTED,
@@ -44,31 +18,10 @@ typedef enum {
 } GAME_STATE; // I want a better name for this, alternatively the ChessGameState struct...
 
 typedef enum {
-    REGULAR,
-    SHORT_CASTLE,
-    LONG_CASTLE,
-    EN_PASSANT,
-    PROMOTION_TO_KNIGHT,
-    PROMOTION_TO_BISHOP,
-    PROMOTION_TO_ROOK,
-    PROMOTION_TO_QUEEN
-} MOVE_TYPE;
-
-typedef enum {
     BOT,
-    HUMAN
+    LOCAL_PLAYER,
+    REMOTE_PLAYER
 } PLAYER_TYPE;
-
-typedef struct {
-    size_t startIndex;
-    size_t destIndex;
-    MOVE_TYPE type;
-} Move;
-
-typedef struct {
-    PLAYER_COLOR colorToPlay;
-    PIECE_TYPE position[BOARD_SIZE];
-} Board;
 
 typedef struct {
     int parentIdx;
@@ -83,14 +36,20 @@ typedef struct {
     Board board;
     Move *legalMoves;
     Board *positionHistory;
+    Move *moveHistory;
     PLAYER_TYPE whiteType;
     PLAYER_TYPE blackType;
     TreeNode *tree;
+    GAME_STATE state;
+    udp_context udp_ctx;
 } ChessGameState;
 
-ChessGameState initGame(PLAYER_TYPE white, PLAYER_TYPE black);
-ChessGameState playMove(ChessGameState state, Move move, int shouldCheckKingInCheck);
+void initGame(ChessGameState *newGame, PLAYER_TYPE white, PLAYER_TYPE black);
+void deleteGameResources(ChessGameState *game);
+void playMove(ChessGameState *state, Move move, int shouldCheckKingInCheck);
 GAME_STATE progressGame(ChessGameState *game, Move attemptedMove);
-Move *calculateLegalMoves(ChessGameState gameState, int shouldCheckKingInCheck);
-
+Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck);
+GAME_STATE getStateForPosition(ChessGameState state);
+// idk why this gives compiler error
+Move getNextMove(ChessGameState *gameState, PLAYER_TYPE playerType, InputHandler input, Texture2D *pieceTextures);
 #endif
