@@ -89,18 +89,18 @@ Board _makeMove(Board board, Move move) {
     return board;
 }
 
-Move *addMovesInDirection(const Board *board, Move *legalMoves, int startIdx, int stepsToCheck, int stepsX, int stepsY, int (*dir)(int, int, int)) {
+Move *addMovesInDirection(const Board *board, Move *legal_moves, int startIdx, int stepsToCheck, int stepsX, int stepsY, int (*dir)(int, int, int)) {
     int iterations = 0;
     for(int startingIdx = dir(startIdx, stepsY, stepsX);
         iterations < stepsToCheck && startingIdx != OUT_OF_BOUNDS;
         startingIdx = dir(startingIdx, stepsY, stepsX))
     {
         Move move = { startIdx, startingIdx, REGULAR };
-        arrpush(legalMoves, move);
+        arrpush(legal_moves, move);
         if(board->position[startingIdx] != EMPTY) break;
         ++iterations;
     }
-    return legalMoves;
+    return legal_moves;
 }
 
 int moveLeavesKingInCheck(ChessGameState gameState, Move move) {
@@ -108,26 +108,26 @@ int moveLeavesKingInCheck(ChessGameState gameState, Move move) {
     // when calling calculateLegalMoves() the flag shouldCheckKingInCheck needs to be set to zero to avoid infinite recursion.
 
     // make new list, so that it won't interfere with the actual game.
-    gameState.legalMoves = NULL;
+    gameState.legal_moves = NULL;
     playMove(&gameState, move, FALSE);
 
-    for(int i = 0; i < arrlen(gameState.legalMoves); ++i) {
-        int attackedSquareIdx = gameState.legalMoves[i].destIndex;
+    for(int i = 0; i < arrlen(gameState.legal_moves); ++i) {
+        int attackedSquareIdx = gameState.legal_moves[i].destIndex;
         if(gameState.board.position[attackedSquareIdx] == KING(!gameState.board.colorToPlay)) {
-            arrfree(gameState.legalMoves);
+            arrfree(gameState.legal_moves);
             return TRUE;
         }
     }
-    arrfree(gameState.legalMoves);
+    arrfree(gameState.legal_moves);
     return FALSE;
 }
 
 // board, legalMoves, positionHistory
 Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck) {
     // clear list
-    size_t legalMoveCount = arrlen(gameState->legalMoves);
+    size_t legalMoveCount = arrlen(gameState->legal_moves);
     if(legalMoveCount > 0)
-        arrdeln(gameState->legalMoves, 0, arrlen(gameState->legalMoves));
+        arrdeln(gameState->legal_moves, 0, arrlen(gameState->legal_moves));
 
     PLAYER_COLOR colorToPlay = gameState->board.colorToPlay;
     PLAYER_COLOR enemyColor = !colorToPlay;
@@ -141,7 +141,7 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
             int startingRank = colorToPlay == PLAYER_WHITE ? COL_SIZE - 2 : 1;
             if(RANK(boardIdx) == startingRank && gameState->board.position[forward] == EMPTY && gameState->board.position[forwardTwoStep] == EMPTY) {
                 Move moveTwoStepForward = { boardIdx, forwardTwoStep, REGULAR };
-                arrpush(gameState->legalMoves, moveTwoStepForward);
+                arrpush(gameState->legal_moves, moveTwoStepForward);
             }
 
             int promotionRank = colorToPlay == PLAYER_WHITE ? 0 : COL_SIZE - 1;
@@ -149,20 +149,20 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
             if(RANK(boardIdx) != promotionRank && gameState->board.position[forward] == EMPTY) {
                 if(RANK(boardIdx) == oneBelowPromotionRank) {
                     Move promoteToKnight = { boardIdx, forward, PROMOTION_TO_KNIGHT };
-                    arrpush(gameState->legalMoves, promoteToKnight);
+                    arrpush(gameState->legal_moves, promoteToKnight);
 
                     Move promoteToBishop = { boardIdx, forward, PROMOTION_TO_BISHOP };
-                    arrpush(gameState->legalMoves, promoteToBishop);
+                    arrpush(gameState->legal_moves, promoteToBishop);
 
                     Move promoteToRook = { boardIdx, forward, PROMOTION_TO_ROOK };
-                    arrpush(gameState->legalMoves, promoteToRook);
+                    arrpush(gameState->legal_moves, promoteToRook);
 
                     Move promoteToQueen = { boardIdx, forward, PROMOTION_TO_QUEEN };
-                    arrpush(gameState->legalMoves, promoteToQueen);
+                    arrpush(gameState->legal_moves, promoteToQueen);
                 }
                 else {
                     Move moveForward = { boardIdx, forward, REGULAR };
-                    arrpush(gameState->legalMoves, moveForward);
+                    arrpush(gameState->legal_moves, moveForward);
                 }
             }
 
@@ -171,20 +171,20 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
                 if(FILE(boardIdx) != 0) {
                     if(RANK(boardIdx) == oneBelowPromotionRank) {
                         Move promoteToKnight = { boardIdx, forwardDiagonalWest, PROMOTION_TO_KNIGHT };
-                        arrpush(gameState->legalMoves, promoteToKnight);
+                        arrpush(gameState->legal_moves, promoteToKnight);
 
                         Move promoteToBishop = { boardIdx, forwardDiagonalWest, PROMOTION_TO_BISHOP };
-                        arrpush(gameState->legalMoves, promoteToBishop);
+                        arrpush(gameState->legal_moves, promoteToBishop);
 
                         Move promoteToRook = { boardIdx, forwardDiagonalWest, PROMOTION_TO_ROOK };
-                        arrpush(gameState->legalMoves, promoteToRook);
+                        arrpush(gameState->legal_moves, promoteToRook);
 
                         Move promoteToQueen = { boardIdx, forwardDiagonalWest, PROMOTION_TO_QUEEN };
-                        arrpush(gameState->legalMoves, promoteToQueen);
+                        arrpush(gameState->legal_moves, promoteToQueen);
                     }
                     else {
                         Move moveForwardDiagonalWest = { boardIdx, forwardDiagonalWest, REGULAR };
-                        arrpush(gameState->legalMoves, moveForwardDiagonalWest);
+                        arrpush(gameState->legal_moves, moveForwardDiagonalWest);
                     }
                 }
             }
@@ -194,20 +194,20 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
                 if(FILE(boardIdx) != ROW_SIZE - 1) {
                     if(RANK(boardIdx) == oneBelowPromotionRank) {
                         Move promoteToKnight = { boardIdx, forwardDiagonalEast, PROMOTION_TO_KNIGHT };
-                        arrpush(gameState->legalMoves, promoteToKnight);
+                        arrpush(gameState->legal_moves, promoteToKnight);
 
                         Move promoteToBishop = { boardIdx, forwardDiagonalEast, PROMOTION_TO_BISHOP };
-                        arrpush(gameState->legalMoves, promoteToBishop);
+                        arrpush(gameState->legal_moves, promoteToBishop);
 
                         Move promoteToRook = { boardIdx, forwardDiagonalEast, PROMOTION_TO_ROOK };
-                        arrpush(gameState->legalMoves, promoteToRook);
+                        arrpush(gameState->legal_moves, promoteToRook);
 
                         Move promoteToQueen = { boardIdx, forwardDiagonalEast, PROMOTION_TO_QUEEN };
-                        arrpush(gameState->legalMoves, promoteToQueen);
+                        arrpush(gameState->legal_moves, promoteToQueen);
                     }
                     else {
                         Move moveForwardDiagonalEast = { boardIdx, forwardDiagonalEast, REGULAR };
-                        arrpush(gameState->legalMoves, moveForwardDiagonalEast);
+                        arrpush(gameState->legal_moves, moveForwardDiagonalEast);
                     }
                 }
             }
@@ -215,17 +215,17 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
             int enPassantRank = colorToPlay == PLAYER_WHITE ? 3 : 4;
             int enemyPawnStartingRank = colorToPlay == PLAYER_WHITE ? 1 : COL_SIZE - 2;
             if(RANK(boardIdx) == enPassantRank && gameState->board.position[WEST(boardIdx, 1)] == PAWN(enemyColor)
-                && gameState->positionHistory[arrlen(gameState->positionHistory) - 2]
+                && gameState->position_history[arrlen(gameState->position_history) - 2]
                     .position[IDX_2D(FILE(boardIdx) - 1, enemyPawnStartingRank)] == PAWN(enemyColor)) {
                 Move moveForwardDiagonalWest = { boardIdx, forwardDiagonalWest, EN_PASSANT };
-                arrpush(gameState->legalMoves, moveForwardDiagonalWest);
+                arrpush(gameState->legal_moves, moveForwardDiagonalWest);
             }
 
             if(RANK(boardIdx) == enPassantRank && gameState->board.position[EAST(boardIdx, 1)] == PAWN(enemyColor)
-                && gameState->positionHistory[arrlen(gameState->positionHistory) - 2]
+                && gameState->position_history[arrlen(gameState->position_history) - 2]
                     .position[IDX_2D(FILE(boardIdx) + 1, enemyPawnStartingRank)] == PAWN(enemyColor)) {
                 Move moveForwardDiagonalEast = { boardIdx, forwardDiagonalEast, EN_PASSANT };
-                arrpush(gameState->legalMoves, moveForwardDiagonalEast);
+                arrpush(gameState->legal_moves, moveForwardDiagonalEast);
             }
         }
         else if(piece == KNIGHT(colorToPlay)) {
@@ -234,22 +234,22 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
             int (*directionsToCheck[]) (int, int, int) = { northWest, northEast, southWest, southEast };
             for(int i = 0; i < ARRAY_LENGTH(directionsToCheck); ++i) {
                 int steps = 1;
-                gameState->legalMoves = addMovesInDirection(&gameState->board, gameState->legalMoves, boardIdx, steps, 1, 2, directionsToCheck[i]);
-                gameState->legalMoves = addMovesInDirection(&gameState->board, gameState->legalMoves, boardIdx, steps, 2, 1, directionsToCheck[i]);
+                gameState->legal_moves = addMovesInDirection(&gameState->board, gameState->legal_moves, boardIdx, steps, 1, 2, directionsToCheck[i]);
+                gameState->legal_moves = addMovesInDirection(&gameState->board, gameState->legal_moves, boardIdx, steps, 2, 1, directionsToCheck[i]);
             }
         }
         else if(piece == BISHOP(colorToPlay)) {
             int (*directionsToCheck[]) (int, int, int) = { northWest, northEast, southWest, southEast };
             for(int i = 0; i < ARRAY_LENGTH(directionsToCheck); ++i) {
                 int steps = ROW_SIZE;
-                gameState->legalMoves = addMovesInDirection(&gameState->board, gameState->legalMoves, boardIdx, steps, 1, 1, directionsToCheck[i]);
+                gameState->legal_moves = addMovesInDirection(&gameState->board, gameState->legal_moves, boardIdx, steps, 1, 1, directionsToCheck[i]);
             }
         }
         else if(piece == ROOK(colorToPlay)) {
             int (*directionsToCheck[]) (int, int) = { north, south, west, east };
             for(int i = 0; i < ARRAY_LENGTH(directionsToCheck); ++i) {
                 int steps = ROW_SIZE;
-                gameState->legalMoves = addMovesInDirection(&gameState->board, gameState->legalMoves, boardIdx,
+                gameState->legal_moves = addMovesInDirection(&gameState->board, gameState->legal_moves, boardIdx,
                                                             steps, 1, 1, (int(*)(int,int,int))directionsToCheck[i]);
             }
         }
@@ -264,7 +264,7 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
             };
             for(int i = 0; i < ARRAY_LENGTH(directionsToCheck); ++i) {
                 int steps = ROW_SIZE;
-                gameState->legalMoves = addMovesInDirection(&gameState->board, gameState->legalMoves, boardIdx, steps, 1, 1, directionsToCheck[i]);
+                gameState->legal_moves = addMovesInDirection(&gameState->board, gameState->legal_moves, boardIdx, steps, 1, 1, directionsToCheck[i]);
             }
         }
         else if(piece == KING(colorToPlay)) {
@@ -279,7 +279,7 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
             };
             for(int i = 0; i < ARRAY_LENGTH(directionsToCheck); ++i) {
                 int steps = 1;
-                gameState->legalMoves = addMovesInDirection(&gameState->board, gameState->legalMoves, boardIdx, steps, 1, 1, directionsToCheck[i]);
+                gameState->legal_moves = addMovesInDirection(&gameState->board, gameState->legal_moves, boardIdx, steps, 1, 1, directionsToCheck[i]);
             }
 
             // castling
@@ -290,14 +290,14 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
             int westRookOriginalPos = IDX_2D(0, RANK(kingOriginalPos));
             int eastRookOriginalPos = IDX_2D(ROW_SIZE - 1, RANK(kingOriginalPos));
 
-            for(int i = 0; i < arrlen(gameState->positionHistory); ++i) {
-                if(gameState->positionHistory[i].position[kingOriginalPos] != KING(colorToPlay)) {
+            for(int i = 0; i < arrlen(gameState->position_history); ++i) {
+                if(gameState->position_history[i].position[kingOriginalPos] != KING(colorToPlay)) {
                     shortCastlingRights = FALSE;
                     longCastlingRights = FALSE;
                 }
-                if(gameState->positionHistory[i].position[westRookOriginalPos] != ROOK(colorToPlay))
+                if(gameState->position_history[i].position[westRookOriginalPos] != ROOK(colorToPlay))
                     longCastlingRights = FALSE;
-                if(gameState->positionHistory[i].position[eastRookOriginalPos] != ROOK(colorToPlay))
+                if(gameState->position_history[i].position[eastRookOriginalPos] != ROOK(colorToPlay))
                     shortCastlingRights = FALSE;
             }
 
@@ -306,7 +306,7 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
                && !moveLeavesKingInCheck(*gameState, (Move){ boardIdx, boardIdx, REGULAR })
                && !moveLeavesKingInCheck(*gameState, (Move){ boardIdx, EAST(boardIdx, 1), REGULAR })) {
                 Move shortCastle = { boardIdx, EAST(boardIdx, 2), SHORT_CASTLE};
-                arrpush(gameState->legalMoves, shortCastle);
+                arrpush(gameState->legal_moves, shortCastle);
             }
             if(longCastlingRights && gameState->board.position[WEST(boardIdx, 1)] == EMPTY
                && gameState->board.position[WEST(boardIdx, 3)] == EMPTY
@@ -314,27 +314,27 @@ Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck)
                && !moveLeavesKingInCheck(*gameState, (Move){ boardIdx, boardIdx, REGULAR })
                && !moveLeavesKingInCheck(*gameState, (Move){ boardIdx, WEST(boardIdx, 1), REGULAR })) {
                 Move longCastle = { boardIdx, WEST(boardIdx, 2), LONG_CASTLE };
-                arrpush(gameState->legalMoves, longCastle);
+                arrpush(gameState->legal_moves, longCastle);
             }
         }
     }
 
-    for(int i = 0; i < arrlen(gameState->legalMoves); ++i) {
-        Move move = gameState->legalMoves[i];
+    for(int i = 0; i < arrlen(gameState->legal_moves); ++i) {
+        Move move = gameState->legal_moves[i];
         // delete moves that takes a friendly piece
         if(getPieceColor(gameState->board.position[move.destIndex]) == colorToPlay) {
-            arrdel(gameState->legalMoves, i);
+            arrdel(gameState->legal_moves, i);
             --i;
             continue;
         }
         // delete moves that leaves king in check
         if(shouldCheckKingInCheck && moveLeavesKingInCheck(*gameState, move)) {
-            arrdel(gameState->legalMoves, i);
+            arrdel(gameState->legal_moves, i);
             --i;
             continue;
         }
     }
-    return gameState->legalMoves;
+    return gameState->legal_moves;
 }
 
 char _getFileLetterFromIndex(int fileIndex) {
@@ -416,7 +416,7 @@ char *convertMoveToShortAlgebraicNotation(Board board, Move move, char *buf) {
 
 GAME_STATE getStateForPosition(ChessGameState state) {
     // Check position for checkmate, stalemate or continue. Assumes the caller has calculated legal moves
-    if(arrlen(state.legalMoves) == 0) {
+    if(arrlen(state.legal_moves) == 0) {
         if(moveLeavesKingInCheck(state, (Move){0,0,NO_MOVE}))
             return state.board.colorToPlay == PLAYER_WHITE ? BLACK_WIN : WHITE_WIN;
         else
@@ -431,50 +431,48 @@ void playMove(ChessGameState *state, Move move, int shouldCheckKingInCheck) {
     // to make sure it is always done in the right order, chessbots should use this function to simulate moves??
     state->board = _makeMove(state->board, move);
     state->board.colorToPlay = !state->board.colorToPlay;
-    state->legalMoves = calculateLegalMoves(state, shouldCheckKingInCheck);
+    state->legal_moves = calculateLegalMoves(state, shouldCheckKingInCheck);
 }
 
-void initGame(ChessGameState *newGame, PLAYER_TYPE white, PLAYER_TYPE black) {
+void initGame(ChessGameState *newGame, const GameSettings *settings) {
     setupStartingPosition(newGame);
     newGame->board.colorToPlay = PLAYER_WHITE;
-    newGame->whiteType = white;
-    newGame->blackType = black;
+    newGame->white_type = settings->white_type;
+    newGame->black_type = settings->black_type;
     newGame->state = CONTINUE;
-    newGame->legalMoves = NULL;
-    newGame->positionHistory = NULL;
-    newGame->moveHistory = NULL;
+    newGame->legal_moves = NULL;
+    newGame->position_history = NULL;
+    newGame->move_history = NULL;
     newGame->tree = NULL;
-    newGame->legalMoves = calculateLegalMoves(newGame, 1);
-    arrpush(newGame->positionHistory, newGame->board);
+    newGame->legal_moves = calculateLegalMoves(newGame, 1);
+    arrpush(newGame->position_history, newGame->board);
 
-    newGame->udp_ctx = (udp_context){0};
-    if(white == REMOTE_PLAYER) {
-        char *ip = "127.0.0.1";
-        initRemotePlay(&(newGame->udp_ctx), 8181, 8080, ip);
+    newGame->udp_ctx = (UdpContext){0};
+    if(settings->white_type == REMOTE_PLAYER) {
+        initRemotePlay(&(newGame->udp_ctx), 8181, 8080, settings->ip_address);
     }
-    else if(black == REMOTE_PLAYER) {
-        char *ip = "127.0.0.1";
-        initRemotePlay(&(newGame->udp_ctx), 8080, 8181, ip);
+    else if(settings->black_type == REMOTE_PLAYER) {
+        initRemotePlay(&(newGame->udp_ctx), 8080, 8181, settings->ip_address);
     }
 }
 
 void deleteGameResources(ChessGameState *game) {
     // NOTE: This won't call free on the actual pointer passed in as I may wanna keep it stack allocated.
-    if(game->legalMoves) arrfree(game->legalMoves);
-    if(game->positionHistory) arrfree(game->positionHistory);
-    if(game->moveHistory) arrfree(game->moveHistory);
+    if(game->legal_moves) arrfree(game->legal_moves);
+    if(game->position_history) arrfree(game->position_history);
+    if(game->move_history) arrfree(game->move_history);
     if(game->tree) arrfree(game->tree);
 }
 
 GAME_STATE progressGame(ChessGameState *state, Move attemptedMove) {
-    assert(state->positionHistory && "Chess game not initialized");
+    assert(state->position_history && "Chess game not initialized");
     Move moveToPlay = {0};
     int foundMove = FALSE;
-    for(int i = 0; i < arrlen(state->legalMoves); ++i) {
-        if(state->legalMoves[i].startIndex == attemptedMove.startIndex &&
-           state->legalMoves[i].destIndex == attemptedMove.destIndex) {
+    for(int i = 0; i < arrlen(state->legal_moves); ++i) {
+        if(state->legal_moves[i].startIndex == attemptedMove.startIndex &&
+           state->legal_moves[i].destIndex == attemptedMove.destIndex) {
             foundMove = TRUE;
-            moveToPlay = state->legalMoves[i];
+            moveToPlay = state->legal_moves[i];
             if(moveToPlay.type >= PROMOTION_TO_KNIGHT) {
                 if(attemptedMove.type != moveToPlay.type) {
                     foundMove = FALSE;
@@ -486,11 +484,11 @@ GAME_STATE progressGame(ChessGameState *state, Move attemptedMove) {
     }
     if(foundMove) {
         playMove(state, moveToPlay, TRUE);
-        arrpush(state->positionHistory, state->board);
-        arrpush(state->moveHistory, moveToPlay);
+        arrpush(state->position_history, state->board);
+        arrpush(state->move_history, moveToPlay);
         GAME_STATE endState = getStateForPosition(*state);
         if(endState != CONTINUE)
-            arrfree(state->legalMoves);
+            arrfree(state->legal_moves);
         return endState;
     }
 
@@ -574,11 +572,11 @@ MOVE_TYPE drawPromotionSelectionMenu(int squareToDraw, PLAYER_COLOR color, Textu
 
 Move _getLocalPlayerMove(ChessGameState *gameState, InputHandler input, Texture2D *pieceTextures) {
 
-    int matchingMoveCount = getMatchingMoveCount(input.attemptedMove, gameState->legalMoves, arrlen(gameState->legalMoves));
+    int matchingMoveCount = getMatchingMoveCount(input.attemptedMove, gameState->legal_moves, arrlen(gameState->legal_moves));
     if(matchingMoveCount == 0)
         return input.attemptedMove;
     if(matchingMoveCount == 1) {
-        Move moveToPlay = getFirstMatchingMove(input.attemptedMove, gameState->legalMoves, arrlen(gameState->legalMoves));
+        Move moveToPlay = getFirstMatchingMove(input.attemptedMove, gameState->legal_moves, arrlen(gameState->legal_moves));
         assert(moveToPlay.type != NO_MOVE && "Move not found in getFirstMatchingMove");
         return moveToPlay;
     }
@@ -598,7 +596,7 @@ Move getNextMove(ChessGameState *gameState, PLAYER_TYPE playerType, InputHandler
             return _getLocalPlayerMove(gameState, input, pieceTextures);
             break;
         case REMOTE_PLAYER:
-            return _getRemotePlayerMove(&(gameState->udp_ctx), gameState->legalMoves);
+            return _getRemotePlayerMove(&(gameState->udp_ctx), gameState->legal_moves);
             break;
     }
 }

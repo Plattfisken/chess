@@ -220,7 +220,7 @@ TreeNode *createMoveTree(ChessGameState gameState, TreeNode *tree, int depth) {
     Move moves[depth];
     // initialize to zero
     for(int i = 0; i < depth; ++i) {
-        moves[i] = (Move){0, 0};
+        moves[i] = (Move){0, 0, 0};
     }
 
     for(int nodeIdx = 0; nodeIdx < arrlen(tree); ++nodeIdx) {
@@ -228,12 +228,15 @@ TreeNode *createMoveTree(ChessGameState gameState, TreeNode *tree, int depth) {
         // the pointers to dynamic arrays have to be reset and copied manually so the actual lists do not get modified
         ChessGameState gameStateCopy = gameState;
 
-        gameStateCopy.legalMoves = NULL;
-        gameStateCopy.positionHistory = NULL;
-        arrsetlen(gameStateCopy.legalMoves, arrlen(gameState.legalMoves));
-        arrsetlen(gameStateCopy.positionHistory, arrlen(gameState.positionHistory));
-        memcpy(gameStateCopy.legalMoves, gameState.legalMoves, arrlen(gameState.legalMoves) * sizeof(Move));
-        memcpy(gameStateCopy.positionHistory, gameState.positionHistory, arrlen(gameState.positionHistory) * sizeof(Board));
+        gameStateCopy.legal_moves = NULL;
+        gameStateCopy.position_history = NULL;
+        gameStateCopy.move_history = NULL;
+        arrsetlen(gameStateCopy.legal_moves, arrlen(gameState.legal_moves));
+        arrsetlen(gameStateCopy.position_history, arrlen(gameState.position_history));
+        arrsetlen(gameStateCopy.move_history, arrlen(gameState.move_history));
+        memcpy(gameStateCopy.legal_moves, gameState.legal_moves, arrlen(gameState.legal_moves) * sizeof(Move));
+        memcpy(gameStateCopy.position_history, gameState.position_history, arrlen(gameState.position_history) * sizeof(Board));
+        memcpy(gameStateCopy.move_history, gameState.move_history, arrlen(gameState.move_history) * sizeof(Move));
 
         // count how many generations there are from current node until root node, and store each parents move
         int generationCount = 0;
@@ -247,8 +250,8 @@ TreeNode *createMoveTree(ChessGameState gameState, TreeNode *tree, int depth) {
         // break out if treedepth has been reach
         // (this will probably leave a single node at one depth lower than the rest, right? How to fix this?)
         if(generationCount >= depth) {
-            arrfree(gameStateCopy.legalMoves);
-            arrfree(gameStateCopy.positionHistory);
+            arrfree(gameStateCopy.legal_moves);
+            arrfree(gameStateCopy.position_history);
             break;
         }
         // progress game with each parent nodes move which calculates all the next legal moves
@@ -261,16 +264,17 @@ TreeNode *createMoveTree(ChessGameState gameState, TreeNode *tree, int depth) {
         // NOTE: calculateLegalMoves gets called inside playMove, it seems to cause a significnant slowdown but is necessary for getStateForPosition
         //       to work properly, perhaps a better way is required.
         // add new node for each legal move from the position arrived at
-        for(int i = 0; i < arrlen(gameStateCopy.legalMoves); ++i) {
+        for(int i = 0; i < arrlen(gameStateCopy.legal_moves); ++i) {
             ChessGameState gameStateCopyCopy = gameStateCopy;
-            gameStateCopyCopy.legalMoves = NULL;
-            playMove(&gameStateCopyCopy, gameStateCopy.legalMoves[i], TRUE);
-            tree = newTreeNode(tree, nodeIdx, gameStateCopy.legalMoves[i], getPositionEvaluation(gameStateCopyCopy, getStateForPosition(gameStateCopyCopy)));
-            arrfree(gameStateCopyCopy.legalMoves);
+            gameStateCopyCopy.legal_moves = NULL;
+            playMove(&gameStateCopyCopy, gameStateCopy.legal_moves[i], TRUE);
+            tree = newTreeNode(tree, nodeIdx, gameStateCopy.legal_moves[i], getPositionEvaluation(gameStateCopyCopy, getStateForPosition(gameStateCopyCopy)));
+            arrfree(gameStateCopyCopy.legal_moves);
         }
 
-        arrfree(gameStateCopy.legalMoves);
-        arrfree(gameStateCopy.positionHistory);
+        arrfree(gameStateCopy.legal_moves);
+        arrfree(gameStateCopy.position_history);
+        arrfree(gameStateCopy.move_history);
     }
 
     return tree;

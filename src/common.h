@@ -4,7 +4,7 @@
 
 #define TRUE 1
 #define FALSE 0
-#define ARRAY_LENGTH(arr) ((sizeof(arr)) / (sizeof(arr[0])))
+#define ARRAY_LENGTH(arr) ((int)((sizeof(arr)) / (sizeof(arr[0]))))
 
 #define SQUARE_SIZE 64
 #define ROW_SIZE 8
@@ -40,8 +40,8 @@ typedef enum {
 } MOVE_TYPE;
 
 typedef struct {
-    size_t startIndex;
-    size_t destIndex;
+    int startIndex;
+    int destIndex;
     MOVE_TYPE type;
 } Move;
 

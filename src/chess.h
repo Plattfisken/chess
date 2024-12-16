@@ -33,23 +33,28 @@ typedef struct {
 TreeNode *newTreeNode(TreeNode *tree, int parentIdx, Move move, float val);
 
 typedef struct {
+    PLAYER_TYPE white_type;
+    PLAYER_TYPE black_type;
+    char ip_address[16];
+} GameSettings;
+
+typedef struct {
     Board board;
-    Move *legalMoves;
-    Board *positionHistory;
-    Move *moveHistory;
-    PLAYER_TYPE whiteType;
-    PLAYER_TYPE blackType;
-    TreeNode *tree;
     GAME_STATE state;
-    udp_context udp_ctx;
+    PLAYER_TYPE white_type;
+    PLAYER_TYPE black_type;
+    UdpContext udp_ctx;
+    Move *legal_moves;
+    Board *position_history;
+    Move *move_history;
+    TreeNode *tree;
 } ChessGameState;
 
-void initGame(ChessGameState *newGame, PLAYER_TYPE white, PLAYER_TYPE black);
+void initGame(ChessGameState *newGame, const GameSettings *settings);
 void deleteGameResources(ChessGameState *game);
 void playMove(ChessGameState *state, Move move, int shouldCheckKingInCheck);
 GAME_STATE progressGame(ChessGameState *game, Move attemptedMove);
 Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck);
 GAME_STATE getStateForPosition(ChessGameState state);
-// idk why this gives compiler error
 Move getNextMove(ChessGameState *gameState, PLAYER_TYPE playerType, InputHandler input, Texture2D *pieceTextures);
 #endif

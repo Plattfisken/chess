@@ -2,7 +2,7 @@
 #include "root.h"
 #include <poll.h>
 
-void initRemotePlay(udp_context *ctx, short peer_port_no, short my_port_no, char *peer_ip) {
+void initRemotePlay(UdpContext *ctx, short peer_port_no, short my_port_no, const char *peer_ip) {
     ctx->peer_addr = (struct sockaddr_in){
         .sin_family = AF_INET,
         .sin_port = htons(peer_port_no),
@@ -135,16 +135,16 @@ char *serialize_move_long_alg(Board board, Move move, char *buf) {
     return buf;
 }
 
-void sendMove(udp_context *ctx, Move move, Board board) {
+void sendMove(UdpContext *ctx, Move move, Board board) {
     char serializedMove[16];
     serialize_move_long_alg(board, move, serializedMove);
 
     assert(sendto(ctx->udp_send_socket, serializedMove,
                    8, 0, (struct sockaddr *)&(ctx->peer_addr),
-                   sizeof ctx->peer_addr) >= 0);
+                   sizeof ctx->peer_addr) >= 0 && "Failed to send move");
 }
 
-Move _getRemotePlayerMove(udp_context *ctx, Move *legal_moves) {
+Move _getRemotePlayerMove(UdpContext *ctx, Move *legal_moves) {
     // clear buffer
     char buf[16];
     memset(buf, 0, sizeof buf);

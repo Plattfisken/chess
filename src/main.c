@@ -2,13 +2,171 @@
 
 #define TREE_VIEW_WIDTH ((SQUARE_SIZE) * (4))
 
-int main(int argc, char **argv) {
-    assert(argc == 2 && "need args");
-    char *color = argv[1];
-    // int my_port = atoi(argv[2]);
-    // int peer_port = atoi(argv[3]);
-    PLAYER_COLOR playerPicked = strcmp(color, "w") == 0 ? PLAYER_WHITE : PLAYER_BLACK;
+int draw_button(int x_pos, int y_pos, int width, int height, Color idle_color, Color highligt_color, const char *text) {
+    Vector2 mousePos = GetMousePosition();
+    int mouse_on_button = mousePos.x >= x_pos         &&
+                          mousePos.x <= x_pos + width &&
+                          mousePos.y >= y_pos         &&
+                          mousePos.y <= y_pos + height;
+    if(!mouse_on_button)
+        DrawRectangle(x_pos, y_pos, width, height, idle_color);
+    else {
+        DrawRectangle(x_pos, y_pos, width, height, highligt_color);
+    }
+    if(text) {
+        DrawText(text, x_pos, y_pos, height, BLACK);
+    }
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && mouse_on_button) {
+        return 1;
+    }
+    return 0;
+}
 
+void draw_chess_board() {
+    for(int i = 0; i < BOARD_SIZE; ++i) {
+        Color color = (RANK(i) + FILE(i)) % 2 ? DARKGREEN : BEIGE;
+        DrawRectangle(FILE(i) * SQUARE_SIZE, RANK(i) * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE, color);
+    }
+}
+
+void draw_start_menu(GameSettings *settings, int width, int height, Texture2D white_pawn, Texture2D black_pawn) {
+    // choosing color to play
+    PLAYER_TYPE *opponent_type = NULL;
+    while(!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(WHITE);
+        draw_chess_board();
+        DrawRectangle(0, 0, width, height, (Color){ 200, 200, 200, 200});
+
+        char *str = "Choose color to play";
+        int text_width = MeasureText(str, 24);
+        DrawText(str, width/2 - text_width/2, height/4, 24, BLACK);
+
+        int x_offset = width/8;
+        int white_pawn_x_pos = width/2 - white_pawn.width/2 - x_offset;
+        int black_pawn_x_pos = width/2 - black_pawn.width/2 + x_offset;
+        int pawns_y_pos = height/3;
+
+        if(draw_button(white_pawn_x_pos, pawns_y_pos, white_pawn.width, white_pawn.height,
+                    (Color){ 200, 200, 200, 0 }, (Color){ 150, 150, 150, 200}, NULL)) {
+            settings->white_type = LOCAL_PLAYER;
+            opponent_type = &settings->black_type;
+
+            EndDrawing();
+            break;
+        }
+        DrawTexture(white_pawn, white_pawn_x_pos, pawns_y_pos, WHITE);
+
+        if(draw_button(black_pawn_x_pos, pawns_y_pos, black_pawn.width, black_pawn.height,
+                    (Color){ 200, 200, 200, 0 }, (Color){ 150, 150, 150, 200}, NULL)) {
+            settings->black_type = LOCAL_PLAYER;
+            opponent_type = &settings->white_type;
+
+            EndDrawing();
+            break;
+        }
+        DrawTexture(black_pawn, black_pawn_x_pos, pawns_y_pos, WHITE);
+
+        EndDrawing();
+    }
+    // choosing opponent type
+    while(!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(WHITE);
+        draw_chess_board();
+        DrawRectangle(0, 0, width, height, (Color){ 200, 200, 200, 200});
+
+        int gap = 12;
+        {
+            char *str = "Choose your opponent";
+            int text_width = MeasureText(str, 24);
+            DrawText(str, width/2 - text_width/2, height/4, 24, BLACK);
+        }
+
+        int btn_count = 0;
+        int btn_height = 24;
+        {
+            char *str = "Local player";
+            int text_width = MeasureText(str, btn_height);
+            ++btn_count;
+            if(draw_button(width/2 - text_width/2, height/4 + btn_height * btn_count + gap * btn_count, text_width,
+                        btn_height, (Color){ 200, 200, 200, 200 }, (Color){ 150, 150, 150, 200 }, str)) {
+                *opponent_type = LOCAL_PLAYER;
+
+                EndDrawing();
+                break;
+            }
+        }
+        {
+            char *str = "Remote player";
+            int text_width = MeasureText(str, btn_height);
+            ++btn_count;
+            if(draw_button(width/2 - text_width/2, height/4 + btn_height * btn_count + gap * btn_count, text_width,
+                        btn_height, (Color){ 200, 200, 200, 200 }, (Color){ 150, 150, 150, 200 }, str)) {
+                *opponent_type = REMOTE_PLAYER;
+
+                EndDrawing();
+                break;
+            }
+        }
+        {
+            char *str = "Bot";
+            int text_width = MeasureText(str, btn_height);
+            ++btn_count;
+            if(draw_button(width/2 - text_width/2, height/4 + btn_height * btn_count + gap * btn_count, text_width,
+                        btn_height, (Color){ 200, 200, 200, 200 }, (Color){ 150, 150, 150, 200 }, str)){
+                *opponent_type = BOT;
+                EndDrawing();
+                break;
+            }
+        }
+        EndDrawing();
+    }
+    if(*opponent_type != REMOTE_PLAYER)
+        return;
+
+    #define buf_len 16
+    char ip_buf[buf_len];
+    memset(ip_buf, 0, sizeof ip_buf);
+    int pos = 0;
+    while(!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(WHITE);
+        draw_chess_board();
+        DrawRectangle(0, 0, width, height, (Color){ 200, 200, 200, 200});
+
+        if(IsKeyPressed(KEY_ENTER)) {
+            strcpy(settings->ip_address, ip_buf);
+            EndDrawing();
+            break;
+        }
+        else if(IsKeyPressed(KEY_BACKSPACE)) {
+            if(pos > 0)
+                ip_buf[--pos] = 0;
+        }
+
+        // leave space for nul-terminator
+        else if(pos < buf_len - 1){
+            int character = GetCharPressed();
+            if(character) {
+                ip_buf[pos++] = character;
+            }
+        }
+        int gap = 12;
+        {
+            char *str = "Enter IP-Address";
+            int text_width = MeasureText(str, 24);
+            DrawText(str, width/2 - text_width/2, height/4, 24, BLACK);
+        }
+        {
+            int text_width = MeasureText(ip_buf, 24);
+            DrawText(ip_buf, width/2 - text_width/2, height/4 + 24 + gap, 24, BLACK);
+        }
+        EndDrawing();
+    }
+}
+
+int main(void) {
     int windowWidth = SQUARE_SIZE * ROW_SIZE + TREE_VIEW_WIDTH;
     int windowHeight = SQUARE_SIZE * COL_SIZE;
     InitWindow(windowWidth, windowHeight, "Chess");
@@ -41,30 +199,29 @@ int main(int argc, char **argv) {
     }
 
     ChessGameState gameState = {0};
-    if(playerPicked == PLAYER_WHITE)
-        initGame(&gameState, LOCAL_PLAYER, REMOTE_PLAYER);
-    else
-        initGame(&gameState, REMOTE_PLAYER, LOCAL_PLAYER);
+    GameSettings settings = {0};
+    draw_start_menu(&settings, windowWidth, windowHeight, pieceTextures[WHITE_PAWN], pieceTextures[BLACK_PAWN]);
+    initGame(&gameState, &settings);
 
     InputHandler input = initInputHandler();
     int boardToDraw = 0;
-    PLAYER_TYPE playerToPlay = gameState.board.colorToPlay == PLAYER_WHITE ? gameState.whiteType : gameState.blackType;
+    PLAYER_TYPE playerToPlay = gameState.board.colorToPlay == PLAYER_WHITE ? gameState.white_type : gameState.black_type;
     while(!WindowShouldClose()) {
-        if(boardToDraw == arrlen(gameState.positionHistory) - 1 && playerToPlay == LOCAL_PLAYER)
+        if(boardToDraw == arrlen(gameState.position_history) - 1 && playerToPlay == LOCAL_PLAYER)
             input = processInput(input);
 
         // Move this into process input
         if(IsKeyPressed(KEY_R)) {
             deleteGameResources(&gameState);
-            initGame(&gameState, LOCAL_PLAYER, REMOTE_PLAYER);
-            boardToDraw = arrlen(gameState.positionHistory) - 1;
+            draw_start_menu(&settings, windowWidth, windowHeight, pieceTextures[WHITE_PAWN], pieceTextures[BLACK_PAWN]);
+            initGame(&gameState, &settings);
         }
         if(IsKeyPressed(KEY_LEFT)) {
             if(boardToDraw > 0)
                 boardToDraw--;
         }
         if(IsKeyPressed(KEY_RIGHT)) {
-            if(boardToDraw < arrlen(gameState.positionHistory) - 1)
+            if(boardToDraw < arrlen(gameState.position_history) - 1)
                 boardToDraw++;
         }
 
@@ -72,16 +229,12 @@ int main(int argc, char **argv) {
         BeginDrawing();
         ClearBackground(WHITE);
 
-        // drawing board
-        for(int i = 0; i < BOARD_SIZE; ++i) {
-            Color color = (RANK(i) + FILE(i)) % 2 ? DARKGREEN : BEIGE;
-            DrawRectangle(FILE(i) * SQUARE_SIZE, RANK(i) * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE, color);
-        }
+        draw_chess_board();
 
         // drawing pieces
         for(int i = 0; i < BOARD_SIZE; ++i) {
-            if(gameState.positionHistory[boardToDraw].position[i] != EMPTY) {
-                PIECE_TYPE pieceType = gameState.positionHistory[boardToDraw].position[i];
+            if(gameState.position_history[boardToDraw].position[i] != EMPTY) {
+                PIECE_TYPE pieceType = gameState.position_history[boardToDraw].position[i];
                 if(i != input.selectedPieceIdx && i != input.selectedPieceIdx)
                     DrawTexture(pieceTextures[pieceType], FILE(i) * SQUARE_SIZE, RANK(i) * SQUARE_SIZE, RAYWHITE);
             }
@@ -98,12 +251,12 @@ int main(int argc, char **argv) {
             Move moveToPlay = getNextMove(&gameState, playerToPlay, input, pieceTextures);
             if(moveToPlay.type != NO_MOVE) {
                 gameState.state = progressGame(&gameState, moveToPlay);
-                playerToPlay = gameState.board.colorToPlay == PLAYER_WHITE ? gameState.whiteType : gameState.blackType;
+                playerToPlay = gameState.board.colorToPlay == PLAYER_WHITE ? gameState.white_type : gameState.black_type;
                 if(playerToPlay == REMOTE_PLAYER) {
-                    sendMove(&gameState.udp_ctx, gameState.moveHistory[arrlen(gameState.moveHistory) - 1],
-                             gameState.positionHistory[arrlen(gameState.positionHistory) - 2]);
+                    sendMove(&gameState.udp_ctx, gameState.move_history[arrlen(gameState.move_history) - 1],
+                             gameState.position_history[arrlen(gameState.position_history) - 2]);
                 }
-                boardToDraw = arrlen(gameState.positionHistory) - 1;
+                boardToDraw = arrlen(gameState.position_history) - 1;
                 // resetting values
                 input = initInputHandler();
             }
@@ -111,10 +264,10 @@ int main(int argc, char **argv) {
 
         // drawing legal squares to move
         if(input.selectedPieceIdx != -1) {
-            for(int i = 0; i < arrlen(gameState.legalMoves); ++i) {
-                if(gameState.legalMoves[i].startIndex == input.selectedPieceIdx) {
-                    DrawRectangle(FILE(gameState.legalMoves[i].destIndex) * SQUARE_SIZE,
-                                  RANK(gameState.legalMoves[i].destIndex) * SQUARE_SIZE,
+            for(int i = 0; i < arrlen(gameState.legal_moves); ++i) {
+                if(gameState.legal_moves[i].startIndex == input.selectedPieceIdx) {
+                    DrawRectangle(FILE(gameState.legal_moves[i].destIndex) * SQUARE_SIZE,
+                                  RANK(gameState.legal_moves[i].destIndex) * SQUARE_SIZE,
                                   SQUARE_SIZE, SQUARE_SIZE, (Color){ 255, 0, 0, 200 });
                 }
             }
@@ -137,7 +290,7 @@ int main(int argc, char **argv) {
         if(gameState.tree) {
             for(int i = 0; i < gameState.tree[0].childCount; ++i) {
                 char moveBuf[8];
-                DrawText(convertMoveToShortAlgebraicNotation(gameState.positionHistory[arrlen(gameState.positionHistory) - 2], gameState.tree[gameState.tree[0].firstChildIdx + i].move, moveBuf), SQUARE_SIZE * ROW_SIZE + 12, 24 * i, 12, BLACK);
+                DrawText(convertMoveToShortAlgebraicNotation(gameState.position_history[arrlen(gameState.position_history) - 2], gameState.tree[gameState.tree[0].firstChildIdx + i].move, moveBuf), SQUARE_SIZE * ROW_SIZE + 12, 24 * i, 12, BLACK);
 
                 char valBuf[8];
                 sprintf(valBuf, "%4.2f\n", gameState.tree[gameState.tree[0].firstChildIdx + i].value);
@@ -145,10 +298,10 @@ int main(int argc, char **argv) {
             }
         }
         // show move history
-        if(arrlen(gameState.positionHistory) > 1) {
-            for(int i = 0; i < arrlen(gameState.moveHistory); ++i) {
+        if(arrlen(gameState.position_history) > 1) {
+            for(int i = 0; i < arrlen(gameState.move_history); ++i) {
                 char moveBuf[8];
-                DrawText(serialize_move_long_alg(gameState.positionHistory[i], gameState.moveHistory[i], moveBuf),
+                DrawText(serialize_move_long_alg(gameState.position_history[i], gameState.move_history[i], moveBuf),
                          SQUARE_SIZE * ROW_SIZE + 12, 24 * i, 12, BLACK);
             }
         }
