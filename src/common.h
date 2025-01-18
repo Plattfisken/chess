@@ -10,6 +10,9 @@
 #define ROW_SIZE 8
 #define COL_SIZE 8
 #define BOARD_SIZE ((ROW_SIZE)*(COL_SIZE))
+#define TREE_VIEW_WIDTH ((SQUARE_SIZE) * (4))
+#define WINDOW_WIDTH ((SQUARE_SIZE) * (ROW_SIZE) + (TREE_VIEW_WIDTH))
+#define WINDOW_HEIGHT ((SQUARE_SIZE) * (COL_SIZE))
 
 #define IDX_2D(x,y) ((x)+(y)*(ROW_SIZE))
 #define RANK(i) ((i) < (0) ? ((i)-(1)) / (ROW_SIZE) : (i) / (ROW_SIZE))
@@ -68,9 +71,22 @@ typedef enum {
     PLAYER_WHITE = 1
 } PLAYER_COLOR;
 
+typedef enum {
+    NOT_SET = 0,
+    BOT,
+    LOCAL_PLAYER,
+    REMOTE_PLAYER
+} PLAYER_TYPE;
+
 typedef struct {
     PLAYER_COLOR colorToPlay;
     PIECE_TYPE position[BOARD_SIZE];
 } Board;
+
+typedef struct {
+    PLAYER_TYPE white_type;
+    PLAYER_TYPE black_type;
+    char ip_address[16];
+} GameSettings;
 
 #endif //COMMON_H

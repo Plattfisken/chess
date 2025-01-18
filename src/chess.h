@@ -11,17 +11,12 @@
 
 typedef enum {
     INVALID_MOVE_ATTEMPTED,
+    MENU,
     CONTINUE,
     DRAW,
     BLACK_WIN,
     WHITE_WIN,
 } GAME_STATE; // I want a better name for this, alternatively the ChessGameState struct...
-
-typedef enum {
-    BOT,
-    LOCAL_PLAYER,
-    REMOTE_PLAYER
-} PLAYER_TYPE;
 
 typedef struct {
     int parentIdx;
@@ -31,12 +26,6 @@ typedef struct {
     float value;
 } TreeNode;
 TreeNode *newTreeNode(TreeNode *tree, int parentIdx, Move move, float val);
-
-typedef struct {
-    PLAYER_TYPE white_type;
-    PLAYER_TYPE black_type;
-    char ip_address[16];
-} GameSettings;
 
 typedef struct {
     Board board;
@@ -50,11 +39,11 @@ typedef struct {
     TreeNode *tree;
 } ChessGameState;
 
-void initGame(ChessGameState *newGame, const GameSettings *settings);
+void init_game(ChessGameState *newGame, const GameSettings *settings);
 void deleteGameResources(ChessGameState *game);
 void playMove(ChessGameState *state, Move move, int shouldCheckKingInCheck);
 GAME_STATE progressGame(ChessGameState *game, Move attemptedMove);
 Move *calculateLegalMoves(ChessGameState *gameState, int shouldCheckKingInCheck);
-GAME_STATE getStateForPosition(ChessGameState state);
-Move getNextMove(ChessGameState *gameState, PLAYER_TYPE playerType, InputHandler input, Texture2D *pieceTextures);
+GAME_STATE getStateForPosition(const ChessGameState *state);
+Move get_next_move(ChessGameState *gameState, PLAYER_TYPE playerType, InputHandler input, Renderer *renderer);
 #endif

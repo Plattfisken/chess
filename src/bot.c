@@ -1,7 +1,7 @@
 #pragma once
 #include "root.h"
 
-float getPieceSquareValue(PIECE_TYPE piece, int sqaureIdx) {
+float getPieceSquareValue(PIECE_TYPE piece, int squareIdx) {
     float piece_table[12][BOARD_SIZE] = {
         // white pawn
         {
@@ -141,46 +141,46 @@ float getPieceSquareValue(PIECE_TYPE piece, int sqaureIdx) {
             return 0;
             break;
         case WHITE_PAWN:
-            return piece_table[WHITE_PAWN][sqaureIdx];
+            return piece_table[WHITE_PAWN][squareIdx];
             break;
         case WHITE_KNIGHT:
-            return piece_table[WHITE_KNIGHT][sqaureIdx];
+            return piece_table[WHITE_KNIGHT][squareIdx];
             break;
         case WHITE_BISHOP:
-            return piece_table[WHITE_BISHOP][sqaureIdx];
+            return piece_table[WHITE_BISHOP][squareIdx];
             break;
         case WHITE_ROOK:
-            return piece_table[WHITE_ROOK][sqaureIdx];
+            return piece_table[WHITE_ROOK][squareIdx];
             break;
         case WHITE_QUEEN:
-            return piece_table[WHITE_QUEEN][sqaureIdx];
+            return piece_table[WHITE_QUEEN][squareIdx];
             break;
         case WHITE_KING:
-            return piece_table[WHITE_KING][sqaureIdx];
+            return piece_table[WHITE_KING][squareIdx];
             break;
 
         case BLACK_PAWN:
-            return piece_table[BLACK_PAWN][sqaureIdx];
+            return piece_table[BLACK_PAWN][squareIdx];
             break;
         case BLACK_KNIGHT:
-            return piece_table[BLACK_KNIGHT][sqaureIdx];
+            return piece_table[BLACK_KNIGHT][squareIdx];
             break;
         case BLACK_BISHOP:
-            return piece_table[BLACK_BISHOP][sqaureIdx];
+            return piece_table[BLACK_BISHOP][squareIdx];
             break;
         case BLACK_ROOK:
-            return piece_table[BLACK_ROOK][sqaureIdx];
+            return piece_table[BLACK_ROOK][squareIdx];
             break;
         case BLACK_QUEEN:
-            return piece_table[BLACK_QUEEN][sqaureIdx];
+            return piece_table[BLACK_QUEEN][squareIdx];
             break;
         case BLACK_KING:
-            return piece_table[BLACK_KING][sqaureIdx];
+            return piece_table[BLACK_KING][squareIdx];
             break;
     }
 }
 
-float getPositionEvaluation(ChessGameState state, GAME_STATE endState) {
+float getPositionEvaluation(const Board *board, GAME_STATE endState) {
     if(endState == WHITE_WIN) {
         return 1000;
     }
@@ -190,21 +190,20 @@ float getPositionEvaluation(ChessGameState state, GAME_STATE endState) {
     if(endState == DRAW) {
         return 0;
     }
-    Board board = state.board;
     float result = 0;
     for(int i = 0; i < BOARD_SIZE; ++i) {
-        result += getPieceSquareValue(board.position[i], i);
-        if(board.position[i] == WHITE_PAWN) result += 1;
-        if(board.position[i] == WHITE_KNIGHT) result += 3.2;
-        if(board.position[i] == WHITE_BISHOP) result += 3.3;
-        if(board.position[i] == WHITE_ROOK) result += 5;
-        if(board.position[i] == WHITE_QUEEN) result += 9;
+        result += getPieceSquareValue(board->position[i], i);
+        if(board->position[i] == WHITE_PAWN) result += 1;
+        if(board->position[i] == WHITE_KNIGHT) result += 3.2;
+        if(board->position[i] == WHITE_BISHOP) result += 3.3;
+        if(board->position[i] == WHITE_ROOK) result += 5;
+        if(board->position[i] == WHITE_QUEEN) result += 9;
 
-        if(board.position[i] == BLACK_PAWN) result += -1;
-        if(board.position[i] == BLACK_KNIGHT) result += -3.2;
-        if(board.position[i] == BLACK_BISHOP) result += -3.3;
-        if(board.position[i] == BLACK_ROOK) result += -5;
-        if(board.position[i] == BLACK_QUEEN) result += -9;
+        if(board->position[i] == BLACK_PAWN) result += -1;
+        if(board->position[i] == BLACK_KNIGHT) result += -3.2;
+        if(board->position[i] == BLACK_BISHOP) result += -3.3;
+        if(board->position[i] == BLACK_ROOK) result += -5;
+        if(board->position[i] == BLACK_QUEEN) result += -9;
     }
     return result;
 }
@@ -268,7 +267,8 @@ TreeNode *createMoveTree(ChessGameState gameState, TreeNode *tree, int depth) {
             ChessGameState gameStateCopyCopy = gameStateCopy;
             gameStateCopyCopy.legal_moves = NULL;
             playMove(&gameStateCopyCopy, gameStateCopy.legal_moves[i], TRUE);
-            tree = newTreeNode(tree, nodeIdx, gameStateCopy.legal_moves[i], getPositionEvaluation(gameStateCopyCopy, getStateForPosition(gameStateCopyCopy)));
+            tree = newTreeNode(tree, nodeIdx, gameStateCopy.legal_moves[i], getPositionEvaluation(&gameStateCopyCopy.board,
+                                                                                                  getStateForPosition(&gameStateCopyCopy)));
             arrfree(gameStateCopyCopy.legal_moves);
         }
 

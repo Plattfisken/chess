@@ -103,22 +103,22 @@ Move *addMovesInDirection(const Board *board, Move *legal_moves, int startIdx, i
     return legal_moves;
 }
 
-int moveLeavesKingInCheck(ChessGameState gameState, Move move) {
+int moveLeavesKingInCheck(ChessGameState state, Move move) {
     // simulate the move on the board, calculate the new moves to see if king is attacked,
     // when calling calculateLegalMoves() the flag shouldCheckKingInCheck needs to be set to zero to avoid infinite recursion.
 
     // make new list, so that it won't interfere with the actual game.
-    gameState.legal_moves = NULL;
-    playMove(&gameState, move, FALSE);
+    state.legal_moves = NULL;
+    playMove(&state, move, FALSE);
 
-    for(int i = 0; i < arrlen(gameState.legal_moves); ++i) {
-        int attackedSquareIdx = gameState.legal_moves[i].destIndex;
-        if(gameState.board.position[attackedSquareIdx] == KING(!gameState.board.colorToPlay)) {
-            arrfree(gameState.legal_moves);
+    for(int i = 0; i < arrlen(state.legal_moves); ++i) {
+        int attackedSquareIdx = state.legal_moves[i].destIndex;
+        if(state.board.position[attackedSquareIdx] == KING(!state.board.colorToPlay)) {
+            arrfree(state.legal_moves);
             return TRUE;
         }
     }
-    arrfree(gameState.legal_moves);
+    arrfree(state.legal_moves);
     return FALSE;
 }
 
@@ -414,11 +414,11 @@ char *convertMoveToShortAlgebraicNotation(Board board, Move move, char *buf) {
     return buf;
 }
 
-GAME_STATE getStateForPosition(ChessGameState state) {
+GAME_STATE getStateForPosition(const ChessGameState *state) {
     // Check position for checkmate, stalemate or continue. Assumes the caller has calculated legal moves
-    if(arrlen(state.legal_moves) == 0) {
-        if(moveLeavesKingInCheck(state, (Move){0,0,NO_MOVE}))
-            return state.board.colorToPlay == PLAYER_WHITE ? BLACK_WIN : WHITE_WIN;
+    if(arrlen(state->legal_moves) == 0) {
+        if(moveLeavesKingInCheck(*state, (Move){0,0,NO_MOVE}))
+            return state->board.colorToPlay == PLAYER_WHITE ? BLACK_WIN : WHITE_WIN;
         else
             return DRAW;
     }
@@ -434,7 +434,7 @@ void playMove(ChessGameState *state, Move move, int shouldCheckKingInCheck) {
     state->legal_moves = calculateLegalMoves(state, shouldCheckKingInCheck);
 }
 
-void initGame(ChessGameState *newGame, const GameSettings *settings) {
+void init_game(ChessGameState *newGame, const GameSettings *settings) {
     setupStartingPosition(newGame);
     newGame->board.colorToPlay = PLAYER_WHITE;
     newGame->white_type = settings->white_type;
@@ -486,7 +486,7 @@ GAME_STATE progressGame(ChessGameState *state, Move attemptedMove) {
         playMove(state, moveToPlay, TRUE);
         arrpush(state->position_history, state->board);
         arrpush(state->move_history, moveToPlay);
-        GAME_STATE endState = getStateForPosition(*state);
+        GAME_STATE endState = getStateForPosition(state);
         if(endState != CONTINUE)
             arrfree(state->legal_moves);
         return endState;
@@ -545,32 +545,7 @@ Move getFirstMatchingMove(Move moveWithoutType, Move *moveList, int moveListCoun
     return (Move){0, 0, NO_MOVE};
 }
 
-MOVE_TYPE drawPromotionSelectionMenu(int squareToDraw, PLAYER_COLOR color, Texture2D *pieceTextures) {
-    DrawRectangle(FILE(squareToDraw) * SQUARE_SIZE,
-                  color == PLAYER_WHITE ? RANK(squareToDraw) * SQUARE_SIZE : RANK(NORTH(squareToDraw, 3)) * SQUARE_SIZE, 
-                  SQUARE_SIZE, SQUARE_SIZE * 4, GRAY);
-
-    for(int i = KNIGHT(color); i <= QUEEN(color); ++i) {
-        DrawTexture(pieceTextures[i], FILE(squareToDraw) * SQUARE_SIZE,
-                    color == PLAYER_WHITE ?
-                    RANK(SOUTH(squareToDraw, i - KNIGHT(color))) * SQUARE_SIZE :
-                    RANK(NORTH(squareToDraw, i - KNIGHT(color))) * SQUARE_SIZE, WHITE);
-    }
-    // TODO: I guess this should be handled by input or something
-    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        if(getMouseSquareIdx() == squareToDraw)
-            return PROMOTION_TO_KNIGHT;
-        else if(getMouseSquareIdx() == (color == PLAYER_WHITE ? SOUTH(squareToDraw, 1) : NORTH(squareToDraw, 1)))
-            return PROMOTION_TO_BISHOP;
-        else if(getMouseSquareIdx() == (color == PLAYER_WHITE ? SOUTH(squareToDraw, 2) : NORTH(squareToDraw, 2)))
-            return PROMOTION_TO_ROOK;
-        else if(getMouseSquareIdx() == (color == PLAYER_WHITE ? SOUTH(squareToDraw, 3) : NORTH(squareToDraw, 3)))
-            return PROMOTION_TO_QUEEN;
-    }
-    return NO_MOVE;
-}
-
-Move _getLocalPlayerMove(ChessGameState *gameState, InputHandler input, Texture2D *pieceTextures) {
+Move _getLocalPlayerMove(ChessGameState *gameState, InputHandler input, Renderer *renderer) {
 
     int matchingMoveCount = getMatchingMoveCount(input.attemptedMove, gameState->legal_moves, arrlen(gameState->legal_moves));
     if(matchingMoveCount == 0)
@@ -582,21 +557,23 @@ Move _getLocalPlayerMove(ChessGameState *gameState, InputHandler input, Texture2
     }
 
     // multiple valid movetypes means promotion
-    MOVE_TYPE promotionType = drawPromotionSelectionMenu(input.attemptedMove.destIndex, gameState->board.colorToPlay, pieceTextures);
-    input.attemptedMove.type = promotionType;
+    input.attemptedMove.type = renderer_add_interactive_promotion_selection_menu(renderer, input.attemptedMove.destIndex, gameState->board.colorToPlay);
     return input.attemptedMove;
 }
 
-Move getNextMove(ChessGameState *gameState, PLAYER_TYPE playerType, InputHandler input, Texture2D *pieceTextures) {
+Move get_next_move(ChessGameState *gameState, PLAYER_TYPE playerType, InputHandler input, Renderer *renderer) {
     switch(playerType) {
         case BOT:
             return _calculateMoveToPlay(gameState);
             break;
         case LOCAL_PLAYER:
-            return _getLocalPlayerMove(gameState, input, pieceTextures);
+            return _getLocalPlayerMove(gameState, input, renderer);
             break;
         case REMOTE_PLAYER:
             return _getRemotePlayerMove(&(gameState->udp_ctx), gameState->legal_moves);
+            break;
+        default:
+            assert(0 && "Should not be here...");
             break;
     }
 }
