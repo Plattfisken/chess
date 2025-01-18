@@ -17,7 +17,7 @@ void _load_textures(Renderer *context) {
     context->piece_textures[BLACK_KING] = LoadTexture("../assets/BLACK_KING.png");
 
     for(int i = 0; i < ARRAY_LENGTH(context->piece_textures); ++i) {
-        if(!IsTextureReady(context->piece_textures[i])) {
+        if(!IsTextureValid(context->piece_textures[i])) {
             printf("Failed to load texture at index: %d\n", i);
         }
     }

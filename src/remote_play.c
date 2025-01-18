@@ -1,6 +1,5 @@
 #pragma once
 #include "root.h"
-#include <poll.h>
 
 void initRemotePlay(UdpContext *ctx, short peer_port_no, short my_port_no, const char *peer_ip) {
     ctx->peer_addr = (struct sockaddr_in){

@@ -2,19 +2,14 @@
 // root.h is included before anything and includes all system headers, libraries, project headers as well as all source files.
 #pragma once
 
-#include <stddef.h>
 #include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <string.h>
+#include <poll.h>
 
-#define USEFUL_THINGS_IMPLEMENTATION
-#include <useful_things.h>
+#include <raylib.h>
 
 #define STB_DS_IMPLEMENTATION
-#include "../include/stb_ds.h"
-#include "../include/raylib.h"
+#include <stb_ds.h>
 
 #include "common.h"
 #include "input_handling.h"

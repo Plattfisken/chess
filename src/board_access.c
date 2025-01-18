@@ -1,9 +1,8 @@
-// provides utility functions and macros for navigating the chessboard.
 #pragma once
 #include "root.h"
 
 
-// NOTE: last argument is ignored, and only defined so the functions can be treated equally with the diagonal directional functions
+// provides utility functions and macros for navigating the chessboard.
 int north(int startIdx, int steps) {
     return NORTH(startIdx, steps) < 0 ? OUT_OF_BOUNDS : NORTH(startIdx, steps);
 }
