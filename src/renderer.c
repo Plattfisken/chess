@@ -133,7 +133,8 @@ void renderer_add_pieces(Renderer *renderer, const PIECE_TYPE *pieces, const Inp
     }
 }
 
-int renderer_add_interactive_button(Renderer *renderer, int x, int y, int width, int height, Color idle_color, Color highligt_color, PIECE_TYPE texture_index, char *text) {
+int renderer_add_interactive_button(Renderer *renderer, int x, int y, int width, int height,
+                                    Color idle_color, Color highligt_color, PIECE_TYPE texture_index, char *text) {
     Vector2 mousePos = GetMousePosition();
     int mouse_on_button = mousePos.x >= x         &&
                           mousePos.x <= x + width &&
